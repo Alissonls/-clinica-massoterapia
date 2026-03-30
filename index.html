@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Serenità · SAP – Clínica de Massoterapia</title>
+  <meta name="description" content="Sistema de Agendamento para clínica de massoterapia com controle de sala única, cadastro LGPD e fichas de pacientes." />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- ============================================================
+     APP SHELL
+     ============================================================ -->
+<div class="app-shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">🌿</div>
+      <div>
+        <h2>Serenità</h2>
+        <span>Massoterapia · SAP</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section">Principal</div>
+    <a class="nav-item" data-page="dashboard" id="nav-dashboard">
+      <span class="nav-icon">🏠</span> Dashboard
+    </a>
+    <a class="nav-item" data-page="agendamentos" id="nav-agendamentos">
+      <span class="nav-icon">📅</span> Agendamentos
+    </a>
+
+    <div class="sidebar-section">Cadastros</div>
+    <a class="nav-item" data-page="clientes" id="nav-clientes">
+      <span class="nav-icon">👥</span> Clientes
+    </a>
+    <a class="nav-item" data-page="terapeutas" id="nav-terapeutas">
+      <span class="nav-icon">💆</span> Terapeutas
+    </a>
+    <a class="nav-item" data-page="fichas" id="nav-fichas">
+      <span class="nav-icon">📋</span> Fichas
+    </a>
+
+    <div class="sidebar-section">Gestão</div>
+    <a class="nav-item" data-page="relatorios" id="nav-relatorios">
+      <span class="nav-icon">📊</span> Relatórios
+    </a>
+
+    <div class="sidebar-footer">
+      🔒 Dados protegidos pela LGPD<br>
+      v1.0 · Sala única compartilhada
+    </div>
+  </aside>
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="topbar-title" id="topbar-title">🏠 Dashboard</div>
+    <div class="topbar-right">
+      <button class="btn btn-primary" id="topbar-novo-btn" onclick="handleTopbarNovo()">+ Novo Agendamento</button>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main class="main-content">
+
+    <!-- ====================================================
+         PAGE: DASHBOARD
+         ==================================================== -->
+    <div class="page active" id="page-dashboard">
+      <!-- Stats -->
+      <div class="grid-4" style="margin-bottom:28px">
+        <div class="stat-card">
+          <div class="stat-icon green">📅</div>
+          <div>
+            <div class="stat-label">Sessões Hoje</div>
+            <div class="stat-value" id="stat-hoje">–</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon blue">📋</div>
+          <div>
+            <div class="stat-label">Esta Semana</div>
+            <div class="stat-value" id="stat-semana">–</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon pink">👥</div>
+          <div>
+            <div class="stat-label">Clientes</div>
+            <div class="stat-value" id="stat-clientes">–</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon gold">💆</div>
+          <div>
+            <div class="stat-label">Terapeutas</div>
+            <div class="stat-value" id="stat-terapeutas">–</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Próximos Agendamentos -->
+      <div class="card">
+        <div class="section-header">
+          <div class="section-title">⏰ Próximas Sessões</div>
+          <button class="btn btn-sm btn-secondary" onclick="navigate('agendamentos')">Ver todos →</button>
+        </div>
+        <div class="timeline" id="proximos-agendamentos">
+          <div style="text-align:center;padding:30px;color:var(--text-muted)">Carregando...</div>
+        </div>
+      </div>
+
+      <!-- Info LGPD -->
+      <div class="card" style="margin-top:20px;background:rgba(110,231,183,.04);border-color:rgba(110,231,183,.15)">
+        <div style="display:flex;align-items:center;gap:14px">
+          <div style="font-size:32px">🔒</div>
+          <div>
+            <div style="font-weight:600;color:var(--green-300);margin-bottom:4px">Conformidade LGPD · Lei 13.709/2018</div>
+            <div style="font-size:13px;color:var(--text-muted);line-height:1.6">
+              Todos os dados coletados (nome, telefone, e-mail) são utilizados exclusivamente para fins de agendamento e atendimento.
+              O consentimento do cliente é registrado e armazenado conforme exigido pela Lei Geral de Proteção de Dados.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================
+         PAGE: AGENDAMENTOS
+         ==================================================== -->
+    <div class="page" id="page-agendamentos">
+      <div class="section-header" style="margin-bottom:20px">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-secondary btn-sm" id="ag-data-anterior">‹</button>
+          <input type="date" class="form-input" id="ag-data-filtro" style="width:160px" />
+          <button class="btn btn-secondary btn-sm" id="ag-data-proximo">›</button>
+          <button class="btn btn-outline btn-sm" id="ag-hoje-btn">Hoje</button>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-primary" onclick="openNovoAgendamento()">+ Agendar</button>
+        </div>
+      </div>
+
+      <!-- AVISO SALA ÚNICA -->
+      <div style="display:flex;align-items:center;gap:10px;background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.2);border-radius:var(--radius-sm);padding:10px 16px;margin-bottom:20px;font-size:13px;color:var(--gold)">
+        🏠 <strong>Sala única compartilhada</strong> — O sistema verifica automaticamente conflitos de horário entre todas as terapeutas.
+      </div>
+
+      <div class="card" style="padding:0">
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Data · Horário</th>
+                <th>Cliente</th>
+                <th>Terapeuta</th>
+                <th>Serviço</th>
+                <th>Status</th>
+                <th>Obs.</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="ag-tbody">
+              <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted)">Carregando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================
+         PAGE: CLIENTES
+         ==================================================== -->
+    <div class="page" id="page-clientes">
+      <div class="section-header" style="margin-bottom:20px">
+        <div class="section-title">Clientes <span id="clientes-count"></span></div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <div class="search-bar" style="width:240px">
+            <span>🔍</span>
+            <input type="text" id="cliente-search-input" placeholder="Buscar cliente..." />
+          </div>
+          <button class="btn btn-primary" onclick="openNovoCliente()">+ Novo Cliente</button>
+        </div>
+      </div>
+
+      <div class="card" style="padding:0">
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Telefone</th>
+                <th>E-mail</th>
+                <th>Sessões</th>
+                <th>LGPD</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="clientes-tbody">
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================
+         PAGE: TERAPEUTAS
+         ==================================================== -->
+    <div class="page" id="page-terapeutas">
+      <div class="section-header" style="margin-bottom:20px">
+        <div class="section-title">Terapeutas <span id="terapeutas-count"></span></div>
+        <button class="btn btn-primary" onclick="openNovaTerapeuta()">+ Nova Terapeuta</button>
+      </div>
+      <div class="grid-auto" id="terapeutas-grid"></div>
+    </div>
+
+    <!-- ====================================================
+         PAGE: FICHAS
+         ==================================================== -->
+    <div class="page" id="page-fichas">
+      <div style="display:grid;grid-template-columns:260px 1fr;gap:24px;min-height:calc(100vh - 130px)">
+        <!-- Lista de clientes no side -->
+        <div class="card" style="padding:12px;align-self:start;position:sticky;top:20px">
+          <div style="font-size:12px;font-weight:700;letter-spacing:.8px;color:var(--text-muted);text-transform:uppercase;padding:8px 8px 12px">
+            Pacientes
+          </div>
+          <div id="fichas-clientes-lista"></div>
+        </div>
+        <!-- Conteúdo da ficha -->
+        <div id="fichas-content">
+          <div class="empty-state">
+            <div class="emoji">📋</div>
+            <h3>Selecione um paciente</h3>
+            <p>Escolha um cliente na lista para ver suas fichas e histórico de atendimentos.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================
+         PAGE: RELATÓRIOS
+         ==================================================== -->
+    <div class="page" id="page-relatorios">
+      <div class="grid-3" style="margin-bottom:28px">
+        <div class="stat-card">
+          <div class="stat-icon green">📅</div>
+          <div>
+            <div class="stat-label">Total de Agendamentos</div>
+            <div class="stat-value" id="rel-total">–</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon blue">📆</div>
+          <div>
+            <div class="stat-label">Agendamentos Este Mês</div>
+            <div class="stat-value" id="rel-mes">–</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green">✅</div>
+          <div>
+            <div class="stat-label">Realizados</div>
+            <div class="stat-value" id="rel-realiz">–</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon gold">⏳</div>
+          <div>
+            <div class="stat-label">Pendentes (futuros)</div>
+            <div class="stat-value" id="rel-pendentes">–</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon pink">❌</div>
+          <div>
+            <div class="stat-label">Cancelados</div>
+            <div class="stat-value" id="rel-cancel">–</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green">👥</div>
+          <div>
+            <div class="stat-label">Clientes Cadastrados</div>
+            <div class="stat-value" id="rel-clientes">–</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LGPD Compliance -->
+      <div class="card" style="margin-bottom:24px">
+        <div class="section-title" style="margin-bottom:16px">🔒 Conformidade LGPD</div>
+        <div style="display:flex;align-items:center;gap:24px">
+          <div style="text-align:center">
+            <div style="font-size:36px;font-weight:700;color:var(--green-300)" id="rel-lgpd">–</div>
+            <div class="text-muted text-sm">com consentimento</div>
+          </div>
+          <div style="flex:1;font-size:13px;color:var(--text-secondary);line-height:1.7">
+            ✅ Nome completo do titular<br>
+            ✅ Telefone e e-mail coletados com consentimento<br>
+            ✅ Dados utilizados exclusivamente para agendamento<br>
+            ✅ Direito de exclusão de dados disponível<br>
+            ✅ Registro de data e hora do consentimento
+          </div>
+        </div>
+      </div>
+
+      <!-- Por terapeuta -->
+      <div class="card">
+        <div class="section-title" style="margin-bottom:16px">💆 Atendimentos por Terapeuta</div>
+        <div id="rel-terapeutas"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ============================================================
+     MODAIS
+     ============================================================ -->
+
+<!-- MODAL: NOVO AGENDAMENTO -->
+<div class="modal-overlay" id="modal-agendamento">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div class="modal-title" id="ag-modal-title">📅 Novo Agendamento</div>
+      <button class="modal-close modal-close" onclick="closeAllModals()">×</button>
+    </div>
+    <form id="ag-form">
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group" style="grid-column:1/-1">
+            <label class="form-label">Cliente <span class="req">*</span></label>
+            <select class="form-select" id="ag-cliente" required>
+              <option value="">Selecione o cliente...</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Terapeuta <span class="req">*</span></label>
+            <select class="form-select" id="ag-terapeuta" required>
+              <option value="">Selecione a terapeuta...</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Serviço / Técnica</label>
+            <input class="form-input" id="ag-servico" type="text" placeholder="Ex: Massagem Relaxante, Drenagem..." list="servicos-list" />
+            <datalist id="servicos-list">
+              <option>Massagem Relaxante</option>
+              <option>Massagem Terapêutica</option>
+              <option>Drenagem Linfática</option>
+              <option>Pedras Quentes</option>
+              <option>Shiatsu</option>
+              <option>Reflexologia</option>
+              <option>Aromaterapia</option>
+              <option>Ventosa</option>
+              <option>Bamboterapia</option>
+              <option>Quick Massage</option>
+            </datalist>
+          </div>
+        </div>
+        <div class="form-row-3">
+          <div class="form-group">
+            <label class="form-label">Data <span class="req">*</span></label>
+            <input class="form-input" id="ag-data" type="date" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Início <span class="req">*</span></label>
+            <input class="form-input" id="ag-hora-inicio" type="time" required step="900" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Término <span class="req">*</span></label>
+            <input class="form-input" id="ag-hora-fim" type="time" required step="900" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <select class="form-select" id="ag-status">
+              <option value="agendado">Agendado</option>
+              <option value="confirmado">Confirmado</option>
+              <option value="realizado">Realizado</option>
+              <option value="cancelado">Cancelado</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Observações</label>
+            <input class="form-input" id="ag-observacoes" type="text" placeholder="Observações para a sessão..." />
+          </div>
+        </div>
+
+        <!-- Aviso de sala única -->
+        <div style="background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.2);border-radius:var(--radius-sm);padding:12px 14px;font-size:12px;color:var(--gold)">
+          ⚠️ <strong>Sala única:</strong> O sistema verificará automaticamente conflitos de horário com todos os agendamentos ativos.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary modal-cancel" onclick="closeAllModals()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">💾 Salvar Agendamento</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL: NOVO CLIENTE -->
+<div class="modal-overlay" id="modal-cliente">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="cliente-modal-title">👤 Novo Cliente</div>
+      <button class="modal-close" onclick="closeAllModals()">×</button>
+    </div>
+    <form id="cliente-form">
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Nome Completo <span class="req">*</span></label>
+          <input class="form-input" id="cliente-nome" type="text" placeholder="Nome completo do cliente" required />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Telefone / WhatsApp</label>
+            <input class="form-input" id="cliente-telefone" type="tel" placeholder="(11) 91234-5678" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">E-mail</label>
+            <input class="form-input" id="cliente-email" type="email" placeholder="cliente@email.com" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Data de Nascimento</label>
+          <input class="form-input" id="cliente-datanascimento" type="date" />
+        </div>
+
+        <hr class="divider" />
+
+        <!-- LGPD Consent -->
+        <div style="background:rgba(110,231,183,.04);border:1px solid rgba(110,231,183,.15);border-radius:var(--radius-md);padding:16px;margin-bottom:8px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:13px;font-weight:600;color:var(--green-300)">
+            🔒 Declaração de Consentimento — LGPD (Lei 13.709/2018)
+          </div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.7;margin-bottom:14px">
+            Os dados pessoais coletados (nome, telefone e e-mail) serão tratados com base no
+            <strong style="color:var(--text-secondary)">Art. 7º, inciso I da LGPD</strong>, mediante consentimento do titular,
+            com a finalidade exclusiva de <strong style="color:var(--text-secondary)">gestão de agendamentos e atendimentos</strong>
+            nesta clínica. O titular tem o direito de solicitar acesso, correção ou exclusão dos seus dados a qualquer momento.
+          </div>
+          <label class="checkbox-group" for="cliente-lgpd">
+            <input type="checkbox" id="cliente-lgpd" required />
+            <span class="checkbox-label">
+              Li e concordo com a coleta e uso dos meus dados pessoais conforme descrito acima.
+              <strong>Autorizo a clínica a armazenar meus dados para fins de agendamento.</strong>
+            </span>
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeAllModals()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">✅ Cadastrar Cliente</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL: NOVA TERAPEUTA -->
+<div class="modal-overlay" id="modal-terapeuta">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="terapeuta-modal-title">💆 Nova Terapeuta</div>
+      <button class="modal-close" onclick="closeAllModals()">×</button>
+    </div>
+    <form id="terapeuta-form">
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Nome Completo <span class="req">*</span></label>
+          <input class="form-input" id="terapeuta-nome" type="text" placeholder="Nome da terapeuta" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Especialidades</label>
+          <input class="form-input" id="terapeuta-especialidade" type="text"
+            placeholder="Ex: Massagem Relaxante, Drenagem Linfática" />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Emoji / Ícone</label>
+            <input class="form-input" id="terapeuta-emoji" type="text"
+              placeholder="💆" maxlength="4" style="font-size:24px;text-align:center" value="💆" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Cor do Avatar</label>
+            <div style="display:flex;align-items:center;gap:10px">
+              <input type="color" id="terapeuta-cor" value="#6ee7b7"
+                style="width:44px;height:44px;padding:2px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-input);cursor:pointer" />
+              <div style="font-size:12px;color:var(--text-muted)">Cor do cartão da terapeuta no sistema</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeAllModals()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">💾 Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL: NOVA FICHA -->
+<div class="modal-overlay" id="modal-ficha">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div class="modal-title">📋 Nova Anotação / Ficha</div>
+      <button class="modal-close" onclick="closeAllModals()">×</button>
+    </div>
+    <form id="ficha-form">
+      <div class="modal-body">
+        <input type="hidden" id="ficha-cliente-id" />
+        <div class="form-group">
+          <label class="form-label">Terapeuta responsável</label>
+          <select class="form-select" id="ficha-terapeuta">
+            <option value="">Selecione...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Queixa Principal / Objetivo</label>
+          <input class="form-input" id="ficha-queixa" type="text"
+            placeholder="Ex: Dor lombar, Estresse, Relaxamento geral..." />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Anotações da Sessão / Evolução <span class="req">*</span></label>
+          <textarea class="form-textarea" id="ficha-conteudo" rows="6"
+            placeholder="Descreva a avaliação, técnicas aplicadas, observações da sessão, evolução do paciente..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">⚠️ Contraindicações / Alergias / Observações Importantes</label>
+          <textarea class="form-textarea" id="ficha-contra" rows="3"
+            placeholder="Ex: Alergia a óleos, gravidez, cirurgia recente, medicamentos em uso..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeAllModals()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">💾 Salvar Ficha</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toast-container" class="toast-container"></div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+<script>
+  function handleTopbarNovo() {
+    const actions = {
+      dashboard: openNovoAgendamento,
+      agendamentos: openNovoAgendamento,
+      clientes: openNovoCliente,
+      terapeutas: openNovaTerapeuta,
+      fichas: () => { if (fichaClienteAtivo) openNovaFicha(fichaClienteAtivo); else toast('Selecione um cliente primeiro', 'warning'); },
+      relatorios: openNovoAgendamento,
+    };
+    const labels = {
+      dashboard: '+ Novo Agendamento',
+      agendamentos: '+ Agendar',
+      clientes: '+ Novo Cliente',
+      terapeutas: '+ Nova Terapeuta',
+      fichas: '+ Nova Anotação',
+      relatorios: '+ Novo Agendamento',
+    };
+    (actions[currentPage] || openNovoAgendamento)();
+  }
+
+  // Update topbar button label on page change
+  const origNavigate = navigate;
+  $$('.nav-item[data-page]').forEach(item => {
+    item.addEventListener('click', () => {
+      const labels = {
+        dashboard: '+ Novo Agendamento',
+        agendamentos: '+ Agendar',
+        clientes: '+ Novo Cliente',
+        terapeutas: '+ Nova Terapeuta',
+        fichas: '+ Nova Anotação',
+        relatorios: '+ Exportar',
+      };
+      const btn = document.getElementById('topbar-novo-btn');
+      btn.textContent = labels[item.dataset.page] || '+ Novo';
+    });
+  });
+</script>
+</body>
+</html>
