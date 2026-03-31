@@ -40,25 +40,15 @@ $$('.nav-item[data-page]').forEach(item => {
   item.addEventListener('click', () => navigate(item.dataset.page));
 });
 
-// ── Topbar: botão de ação contextual ─────────────────────────
-// fichaClienteAtivo é lido em tempo de execução via o módulo de fichas
-import { fichaClienteAtivo } from './modules/fichas.js'; // live binding do ES module
-
-document.getElementById('topbar-novo-btn').addEventListener('click', () => {
-  const page = currentPage;
-  const actions = {
-    dashboard:    openNovoAgendamento,
-    agendamentos: openNovoAgendamento,
-    clientes:     openNovoCliente,
-    terapeutas:   openNovaTerapeuta,
-    fichas: () => {
-      if (fichaClienteAtivo) openNovaFicha(fichaClienteAtivo);
-      else toast('Selecione um paciente primeiro', 'warning');
-    },
-    relatorios: openNovoAgendamento,
-  };
-  (actions[page] || openNovoAgendamento)();
-});
+// ── Botões fixos: Sidebar + Topbar ──────────────────────────
+document.getElementById('btn-sidebar-agendar')?.addEventListener('click', openNovoAgendamento);
+document.getElementById('btn-sidebar-cliente')?.addEventListener('click', openNovoCliente);
+document.getElementById('btn-topbar-agendar')?.addEventListener('click', openNovoAgendamento);
+document.getElementById('btn-topbar-cliente')?.addEventListener('click', openNovoCliente);
+document.getElementById('btn-ver-agendamentos')?.addEventListener('click', () => navigate('agendamentos'));
+document.getElementById('btn-novo-agendamento')?.addEventListener('click', openNovoAgendamento);
+document.getElementById('btn-novo-cliente')?.addEventListener('click', openNovoCliente);
+document.getElementById('btn-nova-terapeuta')?.addEventListener('click', openNovaTerapeuta);
 
 // ── Init ──────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {

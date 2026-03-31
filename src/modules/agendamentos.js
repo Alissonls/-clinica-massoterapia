@@ -4,6 +4,7 @@ import { sanitizeHTML, sanitizeAgendamentoInput, validateTimeRange } from '../co
 import { formatDate, todayISO } from '../utils/formatters.js';
 import { toast } from '../utils/toast.js';
 import { openModal, closeAllModals } from '../utils/modal.js';
+import { navigate } from '../core/router.js';
 import { loadDashboard } from './dashboard.js';
 
 export let agFiltroData = todayISO();
@@ -135,6 +136,11 @@ export function initAgendamentosForm() {
     DB.saveAgendamento(sanitizeAgendamentoInput(raw));
     toast(editId ? 'Agendamento atualizado!' : 'Agendamento criado!', 'success');
     closeAllModals();
+    // Navega para a data do agendamento salvo para o usuário ver imediatamente
+    agFiltroData = data;
+    const filtroEl = document.getElementById('ag-data-filtro');
+    if (filtroEl) filtroEl.value = agFiltroData;
+    navigate('agendamentos');
     renderAgendamentos();
     loadDashboard();
   });

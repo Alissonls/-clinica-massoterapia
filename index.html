@@ -53,6 +53,16 @@
       <span class="nav-icon">📊</span> Relatórios
     </a>
 
+    <!-- Ações rápidas fixas -->
+    <div style="padding:12px 16px 8px">
+      <button class="btn btn-primary w-full" id="btn-sidebar-agendar" style="margin-bottom:8px;justify-content:center">
+        📅 Novo Agendamento
+      </button>
+      <button class="btn btn-outline w-full" id="btn-sidebar-cliente" style="justify-content:center">
+        👤 Novo Cliente
+      </button>
+    </div>
+
     <div class="sidebar-footer">
       🔒 Dados protegidos pela LGPD<br>
       v2.0 · Sala única compartilhada
@@ -63,7 +73,8 @@
   <header class="topbar">
     <div class="topbar-title" id="topbar-title">🏠 Dashboard</div>
     <div class="topbar-right">
-      <button class="btn btn-primary" id="topbar-novo-btn">+ Novo Agendamento</button>
+      <button class="btn btn-secondary btn-sm" id="btn-topbar-cliente">👤 Novo Cliente</button>
+      <button class="btn btn-primary" id="btn-topbar-agendar">📅 Novo Agendamento</button>
     </div>
   </header>
 
@@ -357,19 +368,6 @@
 
 <!-- Entry Point (ES Module) -->
 <script type="module" src="src/app.js"></script>
-
-<!-- Event listeners para botões de ação das páginas (sem inline onclick) -->
-<script type="module">
-  import { navigate } from './src/core/router.js';
-  import { openNovoAgendamento } from './src/modules/agendamentos.js';
-  import { openNovoCliente } from './src/modules/clientes.js';
-  import { openNovaTerapeuta } from './src/modules/terapeutas.js';
-
-  document.getElementById('btn-ver-agendamentos')?.addEventListener('click', () => navigate('agendamentos'));
-  document.getElementById('btn-novo-agendamento')?.addEventListener('click', openNovoAgendamento);
-  document.getElementById('btn-novo-cliente')?.addEventListener('click', openNovoCliente);
-  document.getElementById('btn-nova-terapeuta')?.addEventListener('click', openNovaTerapeuta);
-</script>
 
 </body>
 </html>
