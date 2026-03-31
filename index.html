@@ -15,9 +15,36 @@
 <body>
 
 <!-- ============================================================
-     APP SHELL
+     TELA DE LOGIN
      ============================================================ -->
-<div class="app-shell">
+<div class="login-screen" id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">🌿</div>
+    <h1>Serenità</h1>
+    <p>Massoterapia · SAP v2.0</p>
+    
+    <form class="login-form" id="login-form">
+      <div class="form-group">
+        <label class="form-label">E-mail</label>
+        <input type="email" class="form-input" id="login-email" required placeholder="clinica@email.com" />
+      </div>
+      <div class="form-group" style="margin-bottom:24px">
+        <label class="form-label">Senha</label>
+        <input type="password" class="form-input" id="login-senha" required placeholder="******" />
+      </div>
+      <button type="submit" class="btn btn-primary w-full" id="btn-login-submit" style="justify-content:center;height:44px;font-size:15px">Entrar</button>
+    </form>
+    
+    <div class="login-footer">
+      Não tem uma conta? <a href="#" id="link-criar-conta">Crie agora</a>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     APP SHELL (Sistema)
+     ============================================================ -->
+<div class="app-shell hidden" id="app-shell">
 
   <!-- SIDEBAR -->
   <aside class="sidebar">
@@ -63,7 +90,14 @@
       </button>
     </div>
 
-    <div class="sidebar-footer">
+    <!-- Sair / Auth -->
+    <div style="padding:12px 16px 0; margin-top:auto">
+      <button class="btn w-full btn-secondary" id="btn-logout" style="justify-content:center; background:rgba(248,113,113,.1); color:var(--red); border-color:transparent">
+        Sair da Conta
+      </button>
+    </div>
+
+    <div class="sidebar-footer" style="margin-top:0">
       🔒 Dados protegidos pela LGPD<br>
       v2.0 · Sala única compartilhada
     </div>
