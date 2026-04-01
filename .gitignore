@@ -43,3 +43,5 @@ yarn-error.log*
 *.tmp
 *.bak
 *.orig
+
+.vercel

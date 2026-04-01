@@ -8,17 +8,30 @@
 
   <!-- Content Security Policy — bloqueia scripts inline não autorizados -->
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self';" />
+        content="default-src 'self' https://*.firebaseapp.com https://*.googleapis.com wss://*.firebaseio.com; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com;" />
 
   <link rel="stylesheet" href="styles.css" />
+
+  <!-- Import Map para resolução de dependências JS modernas sem bundler -->
+  <script type="importmap">
+    {
+      "imports": {
+        "firebase/app": "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js",
+        "firebase/auth": "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js",
+        "firebase/firestore": "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js"
+      }
+    }
+  </script>
 </head>
 <body>
 
 <!-- ============================================================
-     TELA DE LOGIN
+     TELA DE AUTENTICAÇÃO
      ============================================================ -->
-<div class="login-screen" id="login-screen">
-  <div class="login-box">
+<div class="login-screen" id="auth-screen">
+
+  <!-- FLUXO: LOGIN -->
+  <div class="login-box" id="login-box">
     <div class="login-logo">🌿</div>
     <h1>Serenità</h1>
     <p>Massoterapia · SAP v2.0</p>
@@ -36,9 +49,37 @@
     </form>
     
     <div class="login-footer">
-      Não tem uma conta? <a href="#" id="link-criar-conta">Crie agora</a>
+      Não tem uma conta? <a href="#" id="link-show-register">Crie agora</a>
     </div>
   </div>
+
+  <!-- FLUXO: CADASTRO -->
+  <div class="login-box hidden" id="register-box">
+    <div class="login-logo" style="background:var(--blue);color:#0d1117">✨</div>
+    <h1>Criar Conta</h1>
+    <p>Comece a gerenciar sua clínica</p>
+    
+    <form class="login-form" id="register-form">
+      <div class="form-group">
+        <label class="form-label">Seu E-mail</label>
+        <input type="email" class="form-input" id="register-email" required placeholder="clinica@email.com" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Crie uma Senha</label>
+        <input type="password" class="form-input" id="register-senha" required placeholder="Mínimo 6 caracteres" minlength="6" />
+      </div>
+      <div class="form-group" style="margin-bottom:24px">
+        <label class="form-label">Confirme a Senha</label>
+        <input type="password" class="form-input" id="register-senha-conf" required placeholder="******" minlength="6" />
+      </div>
+      <button type="submit" class="btn btn-primary w-full" id="btn-register-submit" style="justify-content:center;height:44px;font-size:15px;background:var(--blue);border-color:var(--blue)">Cadastrar Clínica</button>
+    </form>
+    
+    <div class="login-footer">
+      Já possui uma conta? <a href="#" id="link-show-login">Fazer login</a>
+    </div>
+  </div>
+
 </div>
 
 <!-- ============================================================

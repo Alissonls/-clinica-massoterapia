@@ -106,7 +106,7 @@ export function openNovaFicha(clienteId) {
 }
 
 export function initFichasForm() {
-  document.getElementById('ficha-form').addEventListener('submit', e => {
+  document.getElementById('ficha-form').addEventListener('submit', async e => {
     e.preventDefault();
     const clienteId = document.getElementById('ficha-cliente-id').value;
     const ficha = {
@@ -117,10 +117,20 @@ export function initFichasForm() {
       contraindicacoes: sanitizeText(document.getElementById('ficha-contra').value),
     };
     if (!ficha.conteudo) { toast('Adicione o conteúdo da ficha', 'error'); return; }
-    DB.saveFicha(ficha);
-    toast('Ficha salva!', 'success');
-    closeAllModals();
-    openFichaCliente(clienteId);
+
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = 'Salvando...';
+    submitBtn.disabled = true;
+
+    try {
+      await DB.saveFicha(ficha);
+      toast('Ficha salva!', 'success');
+      closeAllModals();
+      openFichaCliente(clienteId);
+    } catch(err) { toast('Erro ao salvar', 'error'); } finally {
+      submitBtn.textContent = originalText; submitBtn.disabled = false;
+    }
   });
 
   document.addEventListener('abrirFichaCliente', e => openFichaCliente(e.detail.clienteId));

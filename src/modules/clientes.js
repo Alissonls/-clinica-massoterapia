@@ -66,11 +66,16 @@ export function editCliente(id) {
   openModal('modal-cliente');
 }
 
-export function deleteCliente(id) {
+export async function deleteCliente(id) {
   if (!confirm('Excluir este cliente? Esta ação não pode ser desfeita.')) return;
-  DB.deleteCliente(id);
-  toast('Cliente excluído', 'info');
-  renderClientes();
+  toast('Excluindo...', 'info');
+  try {
+    await DB.deleteCliente(id);
+    toast('Cliente excluído', 'success');
+    renderClientes();
+  } catch(e) {
+    toast('Erro ao excluir cliente', 'error');
+  }
 }
 
 export function verFichaCliente(clienteId) {
@@ -89,7 +94,7 @@ export function initClientesForm() {
     renderClientes();
   });
 
-  document.getElementById('cliente-form').addEventListener('submit', e => {
+  document.getElementById('cliente-form').addEventListener('submit', async e => {
     e.preventDefault();
     const editId = e.target.getAttribute('data-edit-id');
     const lgpd   = document.getElementById('cliente-lgpd').checked;
@@ -109,11 +114,24 @@ export function initClientesForm() {
       dataAceiteLgpd: new Date().toISOString(),
     };
     if (!raw.nome) { toast('Nome é obrigatório', 'error'); return; }
-    DB.saveCliente(sanitizeClienteInput(raw));
-    toast(editId ? 'Cliente atualizado!' : 'Cliente cadastrado!', 'success');
-    closeAllModals();
-    renderClientes();
-    loadDashboard();
+
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = 'Salvando...';
+    submitBtn.disabled = true;
+
+    try {
+      await DB.saveCliente(sanitizeClienteInput(raw));
+      toast(editId ? 'Cliente atualizado!' : 'Cliente cadastrado!', 'success');
+      closeAllModals();
+      renderClientes();
+      loadDashboard();
+    } catch(err) {
+      toast('Erro ao salvar cliente', 'error');
+    } finally {
+      submitBtn.textContent = originalText;
+      submitBtn.disabled = false;
+    }
   });
 
   document.getElementById('clientes-tbody').addEventListener('click', e => {

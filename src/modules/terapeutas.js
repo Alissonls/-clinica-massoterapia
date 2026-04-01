@@ -58,15 +58,18 @@ export function editTerapeuta(id) {
   openModal('modal-terapeuta');
 }
 
-export function deleteTerapeuta(id) {
+export async function deleteTerapeuta(id) {
   if (!confirm('Excluir esta terapeuta? Os agendamentos associados serão mantidos.')) return;
-  DB.deleteTerapeuta(id);
-  toast('Terapeuta excluída', 'info');
-  renderTerapeutas();
+  toast('Excluindo...', 'info');
+  try {
+    await DB.deleteTerapeuta(id);
+    toast('Terapeuta excluída', 'success');
+    renderTerapeutas();
+  } catch(e) { toast('Erro ao excluir', 'error'); }
 }
 
 export function initTerapeutasForm() {
-  document.getElementById('terapeuta-form').addEventListener('submit', e => {
+  document.getElementById('terapeuta-form').addEventListener('submit', async e => {
     e.preventDefault();
     const editId = e.target.getAttribute('data-edit-id');
     const t = {
@@ -77,10 +80,20 @@ export function initTerapeutasForm() {
       emoji: document.getElementById('terapeuta-emoji').value.trim() || '💆',
     };
     if (!t.nome) { toast('Nome é obrigatório', 'error'); return; }
-    DB.saveTerapeuta(t);
-    toast(editId ? 'Terapeuta atualizada!' : 'Terapeuta cadastrada!', 'success');
-    closeAllModals();
-    renderTerapeutas();
+
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = 'Salvando...';
+    submitBtn.disabled = true;
+
+    try {
+      await DB.saveTerapeuta(t);
+      toast(editId ? 'Terapeuta atualizada!' : 'Terapeuta cadastrada!', 'success');
+      closeAllModals();
+      renderTerapeutas();
+    } catch(e) { toast('Erro ao salvar', 'error'); } finally {
+      submitBtn.textContent = originalText; submitBtn.disabled = false;
+    }
   });
 
   document.getElementById('terapeutas-grid').addEventListener('click', e => {

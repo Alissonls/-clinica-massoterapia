@@ -1,98 +1,139 @@
 /**
- * db.js — Camada de Dados (LocalStorage)
- * Gerencia todas as operações CRUD do sistema SAP.
+ * db.js — Camada de Dados (Firestore Multi-tenant com Cache Híbrido)
+ * Mantém leitura `O(1)` e transforma gravações em `async` para o Firestore.
  * @module db
  */
 
-const KEYS = Object.freeze({
-  CLIENTES:     'sap_clientes',
-  TERAPEUTAS:   'sap_terapeutas',
-  AGENDAMENTOS: 'sap_agendamentos',
-  FICHAS:       'sap_fichas',
-});
+import { collection, doc, setDoc, updateDoc, deleteDoc, getDocs, query, where } from 'firebase/firestore';
+import { db } from '../firebase/config.js';
+
+let _tenantId = null;
+
+// Memória Cache (Sincronizada)
+let _clientes = [];
+let _terapeutas = [];
+let _agendamentos = [];
+let _fichas = [];
 
 export const DB = {
-  // ── Helpers ──────────────────────────────────────────────────
-  _get(key) {
-    try { return JSON.parse(localStorage.getItem(key)) || []; }
-    catch { return []; }
+  // ── Inicialização e Isolamento (Multi-tenant) ────────────────
+  async initCache(tenantId) {
+    _tenantId = tenantId;
+    if (!tenantId) return;
+
+    try {
+      const qClientes     = query(collection(db, 'clientes'), where('tenantId', '==', tenantId));
+      const qTerapeutas   = query(collection(db, 'terapeutas'), where('tenantId', '==', tenantId));
+      const qAgendamentos = query(collection(db, 'agendamentos'), where('tenantId', '==', tenantId));
+      const qFichas       = query(collection(db, 'fichas'), where('tenantId', '==', tenantId));
+
+      const [snapCli, snapTer, snapAg, snapFi] = await Promise.all([
+        getDocs(qClientes), getDocs(qTerapeutas), getDocs(qAgendamentos), getDocs(qFichas)
+      ]);
+
+      _clientes     = snapCli.docs.map(d => ({id: d.id, ...d.data()}));
+      _terapeutas   = snapTer.docs.map(d => ({id: d.id, ...d.data()}));
+      _agendamentos = snapAg.docs.map(d => ({id: d.id, ...d.data()}));
+      _fichas       = snapFi.docs.map(d => ({id: d.id, ...d.data()}));
+      
+    } catch (e) {
+      console.error('Erro ao baixar conta da clínica no Firebase:', e);
+      throw e;
+    }
   },
-  _set(key, val) { localStorage.setItem(key, JSON.stringify(val)); },
-  _id() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); },
+
+  clearCache() {
+    _tenantId = null;
+    _clientes = []; _terapeutas = []; _agendamentos = []; _fichas = [];
+  },
 
   // ── Clientes ─────────────────────────────────────────────────
-  getClientes()  { return this._get(KEYS.CLIENTES); },
-  getCliente(id) { return this.getClientes().find(c => c.id === id) || null; },
-  saveCliente(cliente) {
-    const lista = this.getClientes();
+  getClientes()  { return _clientes; },
+  getCliente(id) { return _clientes.find(c => c.id === id) || null; },
+  async saveCliente(cliente) {
+    if (!_tenantId) throw new Error("Acesso negado: SaaS não inicializado");
+    cliente.tenantId = _tenantId; // Garantindo isolamento
+
     if (cliente.id) {
-      const idx = lista.findIndex(c => c.id === cliente.id);
-      idx >= 0 ? (lista[idx] = { ...lista[idx], ...cliente }) : lista.push(cliente);
+      const ref = doc(db, 'clientes', cliente.id);
+      await updateDoc(ref, cliente);
+      const idx = _clientes.findIndex(c => c.id === cliente.id);
+      if (idx >= 0) _clientes[idx] = { ..._clientes[idx], ...cliente };
     } else {
-      cliente.id = this._id();
+      const ref = doc(collection(db, 'clientes'));
+      cliente.id = ref.id;
       cliente.dataCadastro = new Date().toISOString();
-      lista.push(cliente);
+      await setDoc(ref, cliente);
+      _clientes.push(cliente);
     }
-    this._set(KEYS.CLIENTES, lista);
     return cliente;
   },
-  deleteCliente(id) {
-    this._set(KEYS.CLIENTES, this.getClientes().filter(c => c.id !== id));
+  async deleteCliente(id) {
+    if (!_tenantId) return;
+    await deleteDoc(doc(db, 'clientes', id));
+    _clientes = _clientes.filter(c => c.id !== id);
   },
 
   // ── Terapeutas ───────────────────────────────────────────────
-  getTerapeutas()   { return this._get(KEYS.TERAPEUTAS); },
-  getTerapeuta(id)  { return this.getTerapeutas().find(t => t.id === id) || null; },
-  saveTerapeuta(terapeuta) {
-    const lista = this.getTerapeutas();
+  getTerapeutas()   { return _terapeutas; },
+  getTerapeuta(id)  { return _terapeutas.find(t => t.id === id) || null; },
+  async saveTerapeuta(terapeuta) {
+    if (!_tenantId) throw new Error("SaaS não inicializado");
+    terapeuta.tenantId = _tenantId;
+
     if (terapeuta.id) {
-      const idx = lista.findIndex(t => t.id === terapeuta.id);
-      idx >= 0 ? (lista[idx] = { ...lista[idx], ...terapeuta }) : lista.push(terapeuta);
+      const ref = doc(db, 'terapeutas', terapeuta.id);
+      await updateDoc(ref, terapeuta);
+      const idx = _terapeutas.findIndex(t => t.id === terapeuta.id);
+      if (idx >= 0) _terapeutas[idx] = { ..._terapeutas[idx], ...terapeuta };
     } else {
-      terapeuta.id = this._id();
+      const ref = doc(collection(db, 'terapeutas'));
+      terapeuta.id = ref.id;
       terapeuta.dataCadastro = new Date().toISOString();
-      lista.push(terapeuta);
+      await setDoc(ref, terapeuta);
+      _terapeutas.push(terapeuta);
     }
-    this._set(KEYS.TERAPEUTAS, lista);
     return terapeuta;
   },
-  deleteTerapeuta(id) {
-    this._set(KEYS.TERAPEUTAS, this.getTerapeutas().filter(t => t.id !== id));
+  async deleteTerapeuta(id) {
+    if (!_tenantId) return;
+    await deleteDoc(doc(db, 'terapeutas', id));
+    _terapeutas = _terapeutas.filter(t => t.id !== id);
   },
 
   // ── Agendamentos ─────────────────────────────────────────────
-  getAgendamentos()    { return this._get(KEYS.AGENDAMENTOS); },
-  getAgendamento(id)   { return this.getAgendamentos().find(a => a.id === id) || null; },
-  saveAgendamento(ag) {
-    const lista = this.getAgendamentos();
+  getAgendamentos()    { return _agendamentos; },
+  getAgendamento(id)   { return _agendamentos.find(a => a.id === id) || null; },
+  async saveAgendamento(ag) {
+    if (!_tenantId) throw new Error("SaaS não inicializado");
+    ag.tenantId = _tenantId;
+
     if (ag.id) {
-      const idx = lista.findIndex(a => a.id === ag.id);
-      idx >= 0 ? (lista[idx] = { ...lista[idx], ...ag }) : lista.push(ag);
+      const ref = doc(db, 'agendamentos', ag.id);
+      await updateDoc(ref, ag);
+      const idx = _agendamentos.findIndex(a => a.id === ag.id);
+      if (idx >= 0) _agendamentos[idx] = { ..._agendamentos[idx], ...ag };
     } else {
-      ag.id = this._id();
+      const ref = doc(collection(db, 'agendamentos'));
+      ag.id = ref.id;
       ag.dataCriacao = new Date().toISOString();
-      lista.push(ag);
+      await setDoc(ref, ag);
+      _agendamentos.push(ag);
     }
-    this._set(KEYS.AGENDAMENTOS, lista);
     return ag;
   },
-  deleteAgendamento(id) {
-    this._set(KEYS.AGENDAMENTOS, this.getAgendamentos().filter(a => a.id !== id));
+  async deleteAgendamento(id) {
+    if (!_tenantId) return;
+    await deleteDoc(doc(db, 'agendamentos', id));
+    _agendamentos = _agendamentos.filter(a => a.id !== id);
   },
 
-  /**
-   * Verifica conflito de horário na sala única.
-   * @param {string} data
-   * @param {string} horaInicio - "HH:MM"
-   * @param {string} horaFim    - "HH:MM"
-   * @param {string|null} excludeId
-   * @returns {Object|null}
-   */
+  // ── Verificação de Conflitos Síncrona (na Memória) ───────────
   checkConflito(data, horaInicio, horaFim, excludeId = null) {
     const toMin = h => { const [hh, mm] = h.split(':').map(Number); return hh * 60 + mm; };
     const ini = toMin(horaInicio);
     const fim = toMin(horaFim);
-    const candidatos = this.getAgendamentos().filter(a =>
+    const candidatos = _agendamentos.filter(a =>
       a.data === data && a.id !== excludeId && a.status !== 'cancelado'
     );
     return candidatos.find(a => {
@@ -103,44 +144,24 @@ export const DB = {
   },
 
   // ── Fichas do Paciente ────────────────────────────────────────
-  getFichas()             { return this._get(KEYS.FICHAS); },
-  getFichasByCliente(cId) { return this.getFichas().filter(f => f.clienteId === cId); },
-  saveFicha(ficha) {
-    const lista = this.getFichas();
+  getFichas()             { return _fichas; },
+  getFichasByCliente(cId) { return _fichas.filter(f => f.clienteId === cId); },
+  async saveFicha(ficha) {
+    if (!_tenantId) throw new Error("SaaS não inicializado");
+    ficha.tenantId = _tenantId;
+
     if (ficha.id) {
-      const idx = lista.findIndex(f => f.id === ficha.id);
-      idx >= 0 ? (lista[idx] = { ...lista[idx], ...ficha }) : lista.push(ficha);
+      const ref = doc(db, 'fichas', ficha.id);
+      await updateDoc(ref, ficha);
+      const idx = _fichas.findIndex(f => f.id === ficha.id);
+      if (idx >= 0) _fichas[idx] = { ..._fichas[idx], ...ficha };
     } else {
-      ficha.id = this._id();
+      const ref = doc(collection(db, 'fichas'));
+      ficha.id = ref.id;
       ficha.dataCriacao = new Date().toISOString();
-      lista.push(ficha);
+      await setDoc(ref, ficha);
+      _fichas.push(ficha);
     }
-    this._set(KEYS.FICHAS, lista);
     return ficha;
-  },
-
-  // ── Seed de demonstração ──────────────────────────────────────
-  seedDemo() {
-    if (this.getTerapeutas().length > 0) return;
-    [
-      { nome: 'Ana Beatriz',   especialidade: 'Massagem Relaxante, Pedras Quentes', cor: '#6ee7b7', emoji: '🌿' },
-      { nome: 'Carlos Lima',   especialidade: 'Drenagem Linfática, Shiatsu',        cor: '#93c5fd', emoji: '💧' },
-      { nome: 'Fernanda Dias', especialidade: 'Reflexologia, Aromaterapia',          cor: '#f9a8d4', emoji: '🌸' },
-    ].forEach(t => this.saveTerapeuta(t));
-
-    const tIds = this.getTerapeutas().map(t => t.id);
-    [
-      { nome: 'Maria Silva',  telefone: '(11) 91234-5678', email: 'maria@email.com', aceiteLgpd: true, dataAceiteLgpd: new Date().toISOString() },
-      { nome: 'João Pereira', telefone: '(11) 98765-4321', email: 'joao@email.com',  aceiteLgpd: true, dataAceiteLgpd: new Date().toISOString() },
-    ].forEach(c => this.saveCliente(c));
-
-    const cIds = this.getClientes().map(c => c.id);
-    const hoje   = new Date().toISOString().slice(0, 10);
-    const amanha = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
-    [
-      { clienteId: cIds[0], terapeutaId: tIds[0], data: hoje,   horaInicio: '09:00', horaFim: '10:00', servico: 'Massagem Relaxante', status: 'confirmado', observacoes: '' },
-      { clienteId: cIds[1], terapeutaId: tIds[1], data: hoje,   horaInicio: '10:00', horaFim: '11:00', servico: 'Drenagem Linfática', status: 'agendado',   observacoes: '' },
-      { clienteId: cIds[0], terapeutaId: tIds[2], data: amanha, horaInicio: '14:00', horaFim: '15:00', servico: 'Reflexologia',        status: 'agendado',   observacoes: '' },
-    ].forEach(a => this.saveAgendamento(a));
   },
 };

@@ -98,16 +98,19 @@ export function editAgendamento(id) {
   openModal('modal-agendamento');
 }
 
-export function deleteAgendamento(id) {
+export async function deleteAgendamento(id) {
   if (!confirm('Excluir este agendamento?')) return;
-  DB.deleteAgendamento(id);
-  toast('Agendamento excluído', 'info');
-  renderAgendamentos();
-  loadDashboard();
+  toast('Excluindo...', 'info');
+  try {
+    await DB.deleteAgendamento(id);
+    toast('Agendamento excluído', 'success');
+    renderAgendamentos();
+    loadDashboard();
+  } catch(e) { toast('Erro ao excluir', 'error'); }
 }
 
 export function initAgendamentosForm() {
-  document.getElementById('ag-form').addEventListener('submit', e => {
+  document.getElementById('ag-form').addEventListener('submit', async e => {
     e.preventDefault();
     const editId     = e.target.getAttribute('data-edit-id');
     const data       = document.getElementById('ag-data').value;
@@ -133,16 +136,25 @@ export function initAgendamentosForm() {
       servico: document.getElementById('ag-servico').value,
       observacoes: document.getElementById('ag-observacoes').value,
     };
-    DB.saveAgendamento(sanitizeAgendamentoInput(raw));
-    toast(editId ? 'Agendamento atualizado!' : 'Agendamento criado!', 'success');
-    closeAllModals();
-    // Navega para a data do agendamento salvo para o usuário ver imediatamente
-    agFiltroData = data;
-    const filtroEl = document.getElementById('ag-data-filtro');
-    if (filtroEl) filtroEl.value = agFiltroData;
-    navigate('agendamentos');
-    renderAgendamentos();
-    loadDashboard();
+
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = 'Salvando...';
+    submitBtn.disabled = true;
+
+    try {
+      await DB.saveAgendamento(sanitizeAgendamentoInput(raw));
+      toast(editId ? 'Agendamento atualizado!' : 'Agendamento criado!', 'success');
+      closeAllModals();
+      agFiltroData = data;
+      const filtroEl = document.getElementById('ag-data-filtro');
+      if (filtroEl) filtroEl.value = agFiltroData;
+      navigate('agendamentos');
+      renderAgendamentos();
+      loadDashboard();
+    } catch(err) { toast('Erro ao salvar', 'error'); } finally {
+      submitBtn.textContent = originalText; submitBtn.disabled = false;
+    }
   });
 
   document.getElementById('ag-data-filtro').addEventListener('change', renderAgendamentos);
