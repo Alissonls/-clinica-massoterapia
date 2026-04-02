@@ -1,5 +1,5 @@
 # ── Dependências Node.js ──────────────────────────
-src/firebase/config.js
+
 node_modules/
 package-lock.json
 
