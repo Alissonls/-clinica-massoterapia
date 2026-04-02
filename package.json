@@ -6,7 +6,6 @@
   "private": true,
   "scripts": {
     "start": "npx serve@14 . --listen 3000",
-    "build": "node scripts/build.js",
     "test": "jest",
     "test:coverage": "jest --coverage",
     "test:watch": "jest --watch"
