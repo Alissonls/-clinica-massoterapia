@@ -1,0 +1,33 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Função auxiliar: Garante que o usuário está autenticado e o tenantId é igual ao SEU próprio UID
+    function isOwner(tenantId) {
+      return request.auth != null && request.auth.uid == tenantId;
+    }
+
+    // Regras aplicáveis a todas as tabelas (coleções) do SaaS
+    match /clientes/{docId} {
+      // O usuário pode ler, editar e deletar APENAS se o documento criado tiver o ID do inquilino (tenantId) igual ao dele
+      allow read, update, delete: if isOwner(resource.data.tenantId);
+      // O usuário pode criar um novo documento APENAS se estiver salvando com o próprio ID 
+      allow create: if isOwner(request.resource.data.tenantId);
+    }
+    
+    match /terapeutas/{docId} {
+      allow read, update, delete: if isOwner(resource.data.tenantId);
+      allow create: if isOwner(request.resource.data.tenantId);
+    }
+
+    match /agendamentos/{docId} {
+      allow read, update, delete: if isOwner(resource.data.tenantId);
+      allow create: if isOwner(request.resource.data.tenantId);
+    }
+
+    match /fichas/{docId} {
+      allow read, update, delete: if isOwner(resource.data.tenantId);
+      allow create: if isOwner(request.resource.data.tenantId);
+    }
+  }
+}
